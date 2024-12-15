@@ -1,5 +1,6 @@
 import pygame
 import random
+import cairo
 
 colors = [
     (0, 0, 0),
@@ -147,31 +148,55 @@ size = (400, 500)
 screen = pygame.display.set_mode(size)
 
 pygame.display.set_caption("Tetris")
+clock = pygame.time.Clock()
 
-# Main loop to choose level
-choose_level = True
-fps = 15
-fall_speed = 1
+# Fungsi untuk menggambar gradasi dengan PyCairo
+def draw_gradient_background_with_cairo(screen, color1, color2):
+    width, height = screen.get_size()
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+    ctx = cairo.Context(surface)
 
-# Tambahkan tampilan awal SUPER TETRIS
-def draw_initial_screen(screen):
-    screen.fill(WHITE)
-    font = pygame.font.SysFont("Calibri", 60, True)  # Besar font untuk judul
-    title = font.render("SUPER TETRIS", True, BLACK)
+    grad = cairo.LinearGradient(0, 0, 0, height)
+    grad.add_color_stop_rgb(0, color1[0] / 255, color1[1] / 255, color1[2] / 255)
+    grad.add_color_stop_rgb(1, color2[0] / 255, color2[1] / 255, color2[2] / 255)
+
+    ctx.rectangle(0, 0, width, height)
+    ctx.set_source(grad)
+    ctx.fill()
+
+    data = surface.get_data()
+
+    # Konversi data ke format RGBA untuk Pygame
+    pygame_surface = pygame.image.frombuffer(data, (width, height), "ARGB")
+
+    # Blit PyCairo surface ke Pygame screen
+    screen.blit(pygame_surface, (0, 0))
+
+
+# Fungsi untuk menggambar layar awal dengan animasi gradasi
+def draw_initial_screen_with_cairo(screen, step):
+    # Definisikan warna gradasi yang berubah
+    color1 = (135, 206, 250)
+    color2 = (30, 144 + step % 111, 255)
+
+    draw_gradient_background_with_cairo(screen, color1, color2)
+
+    # Tampilkan judul game
+    font = pygame.font.SysFont("Calibri", 60, True)
+    title = font.render("SUPER TETRIS", True, (0, 0, 0))
     screen.blit(title, (50, 100))
 
-    draw_button(screen, "Next", 50, 250, 300, 50, GREEN, BLACK)  # Tombol "Next"
+    # Tambahkan tombol "Next"
+    draw_button(screen, "Next", 50, 250, 300, 50, (0, 255, 0), (0, 0, 0))
     pygame.display.flip()
 
-# Main loop untuk tampilan awal
+# Main loop untuk layar awal
 initial_screen = True
-
+step = 0
 while initial_screen:
-    screen.fill(WHITE)
-
-    # Tampilkan tampilan judul
-    draw_initial_screen(screen)
-
+    draw_initial_screen_with_cairo(screen, step)
+    step += 5  # Memperbesar step untuk membuat gradasi lebih dinamis
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -181,15 +206,19 @@ while initial_screen:
             if 50 <= x <= 350 and 250 <= y <= 300:  # Tombol Next
                 initial_screen = False  # Pergi ke menu level
 
-    pygame.display.flip()
+    clock.tick(30)  # FPS untuk animasi gradasi
 
 # Main loop untuk memilih level setelah tombol "Next" ditekan
 fps = 15
 fall_speed = 1
 
-# Fungsi untuk menggambar tombol Play Again dan Back to Menu
 def draw_game_over_screen(screen, score):
     screen.fill(WHITE)
+    
+    color1 = (135, 206, 250)
+    color2 = (30, 144 + step % 111, 255)
+    draw_gradient_background_with_cairo(screen, color1, color2)
+    
     font_title = pygame.font.SysFont("Calibri", 60, True)
     title = font_title.render("GAME OVER", True, BLACK)
     screen.blit(title, (50, 100))
@@ -204,12 +233,13 @@ def draw_game_over_screen(screen, score):
     
     # Tombol Back to Menu
     draw_button(screen, "Back to Menu", 50, 400, 300, 50, BLUE, BLACK)
+    
+    
 
+    
     pygame.display.flip()
 
-# Main game loop
 done = False
-clock = pygame.time.Clock()
 game = Tetris(20, 10)
 counter = 0
 pressing_down = False
@@ -220,6 +250,10 @@ current_state = "menu"  # Bisa bernilai "menu", "playing", "gameover"
 while not done:
     if current_state == "menu":  # Menu untuk memilih level
         screen.fill(WHITE)
+        color1 = (135, 206, 250)
+        color2 = (30, 144 + step % 111, 255)
+        draw_gradient_background_with_cairo(screen, color1, color2)
+        
         draw_button(screen, "Easy", 50, 150, 300, 50, GREEN, BLACK)
         draw_button(screen, "Medium", 50, 250, 300, 50, BLUE, BLACK)
         draw_button(screen, "Hard", 50, 350, 300, 50, RED, BLACK)
